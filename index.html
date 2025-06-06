@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pengingat Utang Puasa per Bulan</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f4f8;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .bulan {
+      background-color: white;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .bulan h2 {
+      margin-top: 0;
+      color: #4CAF50;
+    }
+
+    .info {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .info span {
+      font-size: 16px;
+    }
+
+    button {
+      margin: 5px 5px 5px 0;
+      padding: 8px 12px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+    }
+
+    .utangBtn {
+      background-color: #2196F3;
+      color: white;
+    }
+
+    .gantiBtn {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    .resetBtn {
+      background-color: #f44336;
+      color: white;
+      margin-top: 20px;
+      width: 100%;
+    }
+
+    .backupBtns {
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    input[type="file"] {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pengingat Utang Puasa Jane perBulan</h1>
+
+  <div id="container"></div>
+
+  <button class="resetBtn" onclick="resetSemua()">Reset Semua Data</button>
+
+  <div class="backupBtns">
+    <button onclick="eksporData()">📤 Ekspor Data (Backup)</button>
+    <input type="file" id="fileInput" accept=".json" onchange="imporData(event)">
+  </div>
+
+  <script>
+    const bulanList = [
+      "Januari", "Februari", "Maret", "April",
+      "Mei", "Juni", "Juli", "Agustus",
+      "September", "Oktober", "November", "Desember"
+    ];
+
+    const container = document.getElementById("container");
+    let data = JSON.parse(localStorage.getItem("puasaData")) || {};
+
+    function initData() {
+      bulanList.forEach((_, i) => {
+        const key = `bulan${i}`;
+        if (!data[key]) {
+          data[key] = { utang: 0, diganti: 0 };
+        }
+      });
+    }
+
+    function render() {
+      container.innerHTML = "";
+      bulanList.forEach((bulan, i) => {
+        const key = `bulan${i}`;
+        const { utang, diganti } = data[key];
+
+        const div = document.createElement("div");
+        div.className = "bulan";
+
+        div.innerHTML = `
+          <h2>${bulan}</h2>
+          <div class="info">
+            <span>Utang: <strong>${utang}</strong></span>
+            <span>Sudah Diganti: <strong>${diganti}</strong></span>
+          </div>
+          <button class="utangBtn" onclick="tambahUtang(${i})">+ Tambah Utang</button>
+          <button class="gantiBtn" onclick="tambahGanti(${i})">+ Tandai Sudah Ganti</button>
+        `;
+
+        container.appendChild(div);
+      });
+
+      simpanData();
+    }
+
+    function tambahUtang(i) {
+      data[`bulan${i}`].utang++;
+      render();
+    }
+
+    function tambahGanti(i) {
+      if (data[`bulan${i}`].diganti < data[`bulan${i}`].utang) {
+        data[`bulan${i}`].diganti++;
+        render();
+      } else {
+        alert("Semua utang bulan ini sudah diganti!");
+      }
+    }
+
+    function resetSemua() {
+      if (confirm("Yakin ingin reset semua data?")) {
+        bulanList.forEach((_, i) => {
+          data[`bulan${i}`] = { utang: 0, diganti: 0 };
+        });
+        render();
+      }
+    }
+
+    function simpanData() {
+      localStorage.setItem("puasaData", JSON.stringify(data));
+    }
+
+    function eksporData() {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "data_puasa_backup.json";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function imporData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const json = JSON.parse(e.target.result);
+          if (typeof json === "object") {
+            data = json;
+            simpanData();
+            render();
+            alert("Data berhasil diimpor!");
+          } else {
+            alert("Format file tidak valid!");
+          }
+        } catch (err) {
+          alert("Gagal membaca file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Inisialisasi
+    initData();
+    render();
+  </script>
+</body>
+</html>
